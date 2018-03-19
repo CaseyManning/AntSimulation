@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<!-- This is based on DillingerLees great template here: https://github.com/Team-Code/KA_Offline -->
+<html> 
+ <head>
+    <title>Ant Simulation</title> 
+</head>
+ <body>
+    <p align="center"> 
+	<!--This draws the Canvas on the webpage -->
+      <canvas id="mycanvas"></canvas> 
+    </p>
+ </body>
+ 
+ <!-- Run all the JavaScript stuff -->
+ <!-- Include the processing.js library -->
+ <!-- See https://khanacademy.zendesk.com/hc/en-us/articles/202260404-What-parts-of-ProcessingJS-does-Khan-Academy-support- for differences -->
+ <script src="processing.min.js"></script>
+ <script>
+    var sketchProc = function(processingInstance) {
+     with (processingInstance) {
+
+        size(600, 600)
+        var Ant = function(nesst) {
+
+            this.position = new PVector(width/2, height/2);
+            this.velocity = new PVector(0, 0);
+            this.acceleration = new PVector(0, 0);
+            this.target = new PVector(random(200, 400), random(200, 400));
+            this.randomTarget = true;
+            this.nest = nesst.position;
+            this.hasFood = false;
+            this.pheremoning = false;
+            this.color = 127;
+            this.following = false;
+            this.lastFood = new PVector(300, 300);
+        };
+
+        Ant.prototype.update = function() {
+            var maxDir = new PVector(width, height);
+            var maxMag = maxDir.mag();
+            
+            var dir = PVector.sub(this.target, this.position);
+            this.acceleration = dir;
+            this.velocity = dir;
+            this.velocity.limit(1);
+            this.position.add(this.velocity);
+
+            // console.log(this.position);
+            // console.log(this.target);
+            //if(this.randomTarget) {
+                if(dist(this.position.x, this.position.y, this.target.x, this.target.y) < 1) {
+                    this.target = new PVector(random(-30, 30) + this.position.x, random(-30, 30) + this.position.y);
+                    if(dist(this.position.x, this.position.y, this.nest.x, this.nest.y) > 300) {
+                        console.log("returning to nest");
+                        this.target.x = this.nest.x
+                        this.target.y = this.nest.y;
+                    }
+                }
+            //}
+        };
+
+        Ant.prototype.display = function() {
+            stroke(0);
+            strokeWeight(2);
+            fill(this.color);
+
+            ellipse(this.position.x, this.position.y, 10, 10);
+            if(this.hasFood) {
+                fill(30, 200, 30);
+                ellipse(this.position.x, this.position.y, 8, 8);
+            }
+        };
+
+        Ant.prototype.foundFood = function() {
+            this.hasFood = true;
+            this.target.x = this.nest.x;
+            this.target.y = this.nest.y;
+            this.pheremoning = true;
+            this.randomTarget = false;
+            this.color = 0;
+            this.lastFood.set(this.position.x, this.position.y);
+        };
+
+        Ant.prototype.atNest = function() {
+            this.hasFood = false;
+            this.pheremoning = false;
+            this.randomTarget = true;
+            this.color = 127;
+        };
+
+        var Nest = function() {
+            this.position = new PVector(width/2, height/2);
+            this.food = 0;
+            this.ants = 10;
+        }
+
+        Nest.prototype.display = function() {
+            stroke(0);
+            strokeWeight(2);
+            fill(200);
+            ellipse(this.position.x, this.position.y, 50, 50);
+        }
+
+        var Food = function() {
+            this.position = new PVector(random(100, 500), random(100, 500));
+            this.food = 30;
+        }
+
+        Food.prototype.display = function() {
+            stroke(0);
+            strokeWeight(2);
+            fill(30, 200, 30);
+            ellipse(this.position.x, this.position.y, 30, 30);
+        }
+
+        var Predator = function() {
+            this.position = new PVector(random(100, 500), random(100, 500));
+            this.food = 30;
+        }
+
+        Predator.prototype.display = function() {
+            stroke(0);
+            strokeWeight(2);
+            fill(200, 30, 30);
+            ellipse(this.position.x, this.position.y, 20, 20);
+        }
+
+        var Pheremone = function(x, y, targetx, targety) {
+            this.position = new PVector(x, y);
+            this.targetFood = new PVector(targetx, targety);
+        }
+
+        Food.prototype.display = function() {
+            stroke(0);
+            strokeWeight(2);
+            fill(210 - this.food*6, 210, 210 - this.food*6);
+            ellipse(this.position.x, this.position.y, 30, 30);
+        }
+
+        var nest = new Nest();
+
+
+        var ants = [];
+
+        var numAnts = 10;
+        for(var i = 0; i < numAnts; i++) {
+            ants.push(new Ant(nest));
+        }
+
+        var foods = [];
+        var numFoods = 3;
+        for(var i = 0; i < numFoods; i++) {
+            foods.push(new Food());
+        }
+
+        var predators = [];
+        predators.push(new Predator());
+
+        var pheremones = [];
+
+        draw = function() {
+            console.log(pheremones.length);
+            background(255, 255, 255);
+            nest.display();
+
+            for(var i = 0; i < ants.length; i++) {
+                ants[i].update();
+                ants[i].display();
+            }
+            for(var i = 0; i < foods.length; i++) {
+                if(foods[i].food < 0) {
+                    for(var j = 0; j < pheremones.length; j++) {
+                        if(dist(pheremones[j].targetFood.x, pheremones[j].targetFood.y, foods[i].position.x, foods[i].position.y) < 50) {
+                            console.log("removing a pheremone");
+                            pheremones.splice(j, 1);
+                        }
+                    }
+                    foods.splice(i, 1);
+                } else {
+                    foods[i].display();
+                }
+            }
+            
+            for(var i = 0; i < ants.length; i++) {
+                for(var j = 0; j < foods.length; j++) {
+                    if(dist(ants[i].position.x, ants[i].position.y, foods[j].position.x, foods[j].position.y) < 15) {
+                        if(ants[i].hasFood == false) {
+                            ants[i].randomTarget = false;
+                            foods[j].food -= 1;
+                            ants[i].foundFood();
+                        }
+                    }
+                }
+            }
+
+            for(var i = 0; i < ants.length; i++) {
+                if(dist(ants[i].position.x, ants[i].position.y, nest.position.x, nest.position.y) < 50/2) {
+                    if(ants[i].hasFood) {
+                        nest.food += 1;
+                    }
+                    ants[i].atNest();
+                }
+            }
+
+            for(var i = 0; i < ants.length; i++) {
+                if(ants[i].pheremoning && ants[i].following == false) {
+                    pheremones.push(new Pheremone(ants[i].position.x, ants[i].position.y, ants[i].lastFood.x, ants[i].lastFood.y));
+                }
+            }
+
+            for(var i = 0; i < pheremones.length; i++) {
+                stroke(1)
+                fill(0, 200, 200)
+                //ellipse(pheremones[i].position.x, pheremones[i].position.y, 1, 1);
+            }
+            for(var i = 0; i < ants.length; i++) {
+                for(var j = 0; j < pheremones.length; j++) {
+                    if(ants[i].randomTarget == true) {
+                        if(dist(ants[i].position.x, ants[i].position.y, pheremones[j].position.x, pheremones[j].position.y) < 5) {
+                            ants[i].following = true;
+                            ants[i].target.x = pheremones[j].targetFood.x
+                            ants[i].target.y = pheremones[j].targetFood.y;
+                        }
+                    }
+                }
+            }
+            for(var i = 0; i < predators.length; i++) {
+                predators[i].display();
+            }
+        };
+
+
+    }};
+
+    // Get the canvas that Processing-js will use
+    var canvas = document.getElementById("mycanvas"); 
+    // Pass the function sketchProc (defined in myCode.js) to Processing's constructor.
+    var processingInstance = new Processing(canvas, sketchProc); 
+ </script>
+
+</html>
