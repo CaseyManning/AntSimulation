@@ -6,7 +6,7 @@
 </head>
  <body>
     <p align="center"> 
-	<!--This draws the Canvas on the webpage -->
+    <!--This draws the Canvas on the webpage -->
       <canvas id="mycanvas"></canvas> 
     </p>
  </body>
@@ -29,7 +29,6 @@
             this.randomTarget = true;
             this.nest = nesst.position;
             this.hasFood = false;
-            this.pheremoning = false;
             this.color = 127;
             this.following = false;
             this.lastFood = new PVector(300, 300);
@@ -75,7 +74,6 @@
             this.hasFood = true;
             this.target.x = this.nest.x;
             this.target.y = this.nest.y;
-            this.pheremoning = true;
             this.randomTarget = false;
             this.color = 0;
             this.lastFood.set(this.position.x, this.position.y);
@@ -83,7 +81,7 @@
 
         Ant.prototype.atNest = function() {
             this.hasFood = false;
-            this.pheremoning = false;
+            this.following = false;
             this.randomTarget = true;
             this.color = 127;
         };
@@ -134,7 +132,7 @@
             stroke(0);
             strokeWeight(2);
             fill(210 - this.food*6, 210, 210 - this.food*6);
-            ellipse(this.position.x, this.position.y, 30, 30);
+            ellipse(this.position.x, this.position.y, this.food, this.food);
         }
 
         var nest = new Nest();
@@ -159,7 +157,7 @@
         var pheremones = [];
 
         draw = function() {
-            console.log(pheremones.length);
+            console.log(pheremones);
             background(255, 255, 255);
             nest.display();
 
@@ -168,10 +166,9 @@
                 ants[i].display();
             }
             for(var i = 0; i < foods.length; i++) {
-                if(foods[i].food < 0) {
+                if(foods[i].food <= 0) {
                     for(var j = 0; j < pheremones.length; j++) {
-                        if(dist(pheremones[j].targetFood.x, pheremones[j].targetFood.y, foods[i].position.x, foods[i].position.y) < 50) {
-                            console.log("removing a pheremone");
+                        if(dist(foods[i].position.x, foods[i].position.y, pheremones[j].x, pheremones[j].y) < 50) {
                             pheremones.splice(j, 1);
                         }
                     }
@@ -188,6 +185,15 @@
                             ants[i].randomTarget = false;
                             foods[j].food -= 1;
                             ants[i].foundFood();
+                            if(ants[i].following == false) {
+                                var canDropPheremone = true;
+                                for(var q = 0; q < pheremones.length; q++) {
+                                    if(dist(ants[i].position.x, ants[i].position.y, pheremones[q].x, pheremones[q].y) < 100) {
+                                        canDropPheremone = false;
+                                    }
+                                }
+                                pheremones.push(new PVector(foods[j].position.x, foods[j].position.y));
+                            }
                         }
                     }
                 }
@@ -203,23 +209,12 @@
             }
 
             for(var i = 0; i < ants.length; i++) {
-                if(ants[i].pheremoning && ants[i].following == false) {
-                    pheremones.push(new Pheremone(ants[i].position.x, ants[i].position.y, ants[i].lastFood.x, ants[i].lastFood.y));
-                }
-            }
-
-            for(var i = 0; i < pheremones.length; i++) {
-                stroke(1)
-                fill(0, 200, 200)
-                //ellipse(pheremones[i].position.x, pheremones[i].position.y, 1, 1);
-            }
-            for(var i = 0; i < ants.length; i++) {
                 for(var j = 0; j < pheremones.length; j++) {
                     if(ants[i].randomTarget == true) {
-                        if(dist(ants[i].position.x, ants[i].position.y, pheremones[j].position.x, pheremones[j].position.y) < 5) {
+                        if(pDistance(ants[i].position.x, ants[i].position.y, 300, 300, pheremones[j].x, pheremones[j].y) < 5) {
                             ants[i].following = true;
-                            ants[i].target.x = pheremones[j].targetFood.x
-                            ants[i].target.y = pheremones[j].targetFood.y;
+                            ants[i].target.x = pheremones[j].x
+                            ants[i].target.y = pheremones[j].y;
                         }
                     }
                 }
@@ -229,8 +224,40 @@
             }
         };
 
-
     }};
+
+    function pDistance(x, y, x1, y1, x2, y2) {
+
+        var A = x - x1;
+        var B = y - y1;
+        var C = x2 - x1;
+        var D = y2 - y1;
+
+        var dot = A * C + B * D;
+        var len_sq = C * C + D * D;
+        var param = -1;
+        if (len_sq != 0) //in case of 0 length line
+          param = dot / len_sq;
+
+        var xx, yy;
+
+        if (param < 0) {
+            xx = x1;
+            yy = y1;
+        }
+        else if (param > 1) {
+            xx = x2;
+            yy = y2;
+        }
+        else {
+            xx = x1 + param * C;
+            yy = y1 + param * D;
+        }
+
+        var dx = x - xx;
+        var dy = y - yy;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
 
     // Get the canvas that Processing-js will use
     var canvas = document.getElementById("mycanvas"); 
