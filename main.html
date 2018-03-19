@@ -123,7 +123,7 @@
             ellipse(this.position.x, this.position.y, 20, 20);
         }
 
-        var Pheremone = function(x, y, targetx, targety) {
+        var Pheromone = function(x, y, targetx, targety) {
             this.position = new PVector(x, y);
             this.targetFood = new PVector(targetx, targety);
         }
@@ -154,10 +154,10 @@
         var predators = [];
         predators.push(new Predator());
 
-        var pheremones = [];
+        var pheromones = [];
 
         draw = function() {
-            console.log(pheremones);
+            console.log(pheromones);
             background(255, 255, 255);
             nest.display();
 
@@ -167,9 +167,9 @@
             }
             for(var i = 0; i < foods.length; i++) {
                 if(foods[i].food <= 0) {
-                    for(var j = 0; j < pheremones.length; j++) {
-                        if(dist(foods[i].position.x, foods[i].position.y, pheremones[j].x, pheremones[j].y) < 50) {
-                            pheremones.splice(j, 1);
+                    for(var j = 0; j < pheromones.length; j++) {
+                        if(dist(foods[i].position.x, foods[i].position.y, pheromones[j].x, pheromones[j].y) < 50) {
+                            pheromones.splice(j, 1);
                         }
                     }
                     foods.splice(i, 1);
@@ -186,13 +186,13 @@
                             foods[j].food -= 1;
                             ants[i].foundFood();
                             if(ants[i].following == false) {
-                                var canDropPheremone = true;
-                                for(var q = 0; q < pheremones.length; q++) {
-                                    if(dist(ants[i].position.x, ants[i].position.y, pheremones[q].x, pheremones[q].y) < 100) {
-                                        canDropPheremone = false;
+                                var canDropPheromone = true;
+                                for(var q = 0; q < pheromones.length; q++) {
+                                    if(dist(ants[i].position.x, ants[i].position.y, pheromones[q].x, pheromones[q].y) < 100) {
+                                        canDropPheromone = false;
                                     }
                                 }
-                                pheremones.push(new PVector(foods[j].position.x, foods[j].position.y));
+                                pheromones.push(new PVector(foods[j].position.x, foods[j].position.y));
                             }
                         }
                     }
@@ -209,18 +209,31 @@
             }
 
             for(var i = 0; i < ants.length; i++) {
-                for(var j = 0; j < pheremones.length; j++) {
+                for(var j = 0; j < pheromones.length; j++) {
                     if(ants[i].randomTarget == true) {
-                        if(pDistance(ants[i].position.x, ants[i].position.y, 300, 300, pheremones[j].x, pheremones[j].y) < 5) {
+                        if(pDistance(ants[i].position.x, ants[i].position.y, 300, 300, pheromones[j].x, pheromones[j].y) < 5) {
                             ants[i].following = true;
-                            ants[i].target.x = pheremones[j].x
-                            ants[i].target.y = pheremones[j].y;
+                            ants[i].target.x = pheromones[j].x
+                            ants[i].target.y = pheromones[j].y;
                         }
                     }
                 }
             }
             for(var i = 0; i < predators.length; i++) {
                 predators[i].display();
+            }
+
+            //checks for obsolete pheromone trails
+            for(var i = 0; i < pheromones.length; i++) {
+                var isNearFood = false;
+                for(var j = 0; j < foods.length; j++) {
+                    if(dist(pheromones[i].x, pheromones[i].y, foods[j].position.x, foods[j].position.y) < 50) {
+                        isNearFood = true;
+                    }
+                }
+                if(isNearFood == false) {
+                    pheromones.splice(i, 1);
+                }
             }
         };
 
